@@ -11,7 +11,7 @@ import SwiftUI
 struct RC_LEGOApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            HomeView()
         }
     }
 }
