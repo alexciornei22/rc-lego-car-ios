@@ -16,14 +16,13 @@ class PeripheralViewModel: ObservableObject {
     @Published var state: CBPeripheralState = .disconnected
     @Published var service: CBService? = nil
     @Published var characteristic: CBCharacteristic? = nil
-    @Published var textInput = ""
     var isSendEnabled: Bool {
-        textInput.count > 0 &&
         state == .connected &&
         service != nil &&
         characteristic != nil
     }
-    
+    @Published var sliderHeight: CGFloat = 0
+
     private var cancellables = Set<AnyCancellable>()
     
     init(coordinator: AppCoordinator, peripheral: CBPeripheral) {

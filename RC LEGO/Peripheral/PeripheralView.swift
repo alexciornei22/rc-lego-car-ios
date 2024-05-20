@@ -10,36 +10,37 @@ import SwiftUI
 struct PeripheralView: View {
     @StateObject var viewModel: PeripheralViewModel
     @ObservedObject var bluetoothManager: BluetoothManager
-
+    
     var body: some View {
-        VStack(alignment: .leading) {                    
-            HStack(spacing: 20) {
-                TextField("Enter message", text: $viewModel.textInput)
-                    .textFieldStyle(.roundedBorder)
-                
+        GeometryReader { proxy in
+            HStack(alignment: .center, spacing: 20) {
                 Spacer()
-                
-                Button {
-                    bluetoothManager.write(
-                        string: viewModel.textInput,
-                        to: viewModel.peripheral,
-                        for: viewModel.characteristic!
-                    )
-                } label: {
-                    HStack {
-                        Text("Send")
-                        Image(systemName: "arrow.forward")
-                    }
+                VStack {
+                    ThrottleSliderView(sliderHeight: $viewModel.sliderHeight)
+                        .frame(width: 100, height: proxy.size.height / 1.5)
+                    Text("Throttle")
+                        .fontWeight(.bold)
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(!viewModel.isSendEnabled)
             }
+            .frame(
+                maxWidth: .infinity,
+                maxHeight: .infinity
+            )
+            .padding(.all)
         }
-        .padding(.all)
         .navigationTitle(viewModel.peripheral.name ?? "Unknown")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 toggleConnectionButton
+            }
+        }
+        .onReceive(viewModel.$sliderHeight.throttle(for: 0.25, scheduler: DispatchQueue.main, latest: true)) { value in
+            if viewModel.isSendEnabled {
+                bluetoothManager.write(
+                    string: "THR\(value.rounded())",
+                    to: viewModel.peripheral,
+                    for: viewModel.characteristic!
+                )
             }
         }
     }
