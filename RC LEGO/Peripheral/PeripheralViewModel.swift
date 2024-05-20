@@ -9,10 +9,11 @@ import Foundation
 import Combine
 import CoreBluetooth
 
-class PeripheralViewModel: ObservableObject {
+class PeripheralViewModel: NSObject, ObservableObject {
     var coordinator: AppCoordinator
     var peripheral: CBPeripheral
-    
+    var centralManager: CBCentralManager
+
     @Published var state: CBPeripheralState = .disconnected
     @Published var service: CBService? = nil
     @Published var characteristic: CBCharacteristic? = nil
@@ -25,40 +26,52 @@ class PeripheralViewModel: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
     
-    init(coordinator: AppCoordinator, peripheral: CBPeripheral) {
+    init(coordinator: AppCoordinator, peripheral: CBPeripheral, centralManager: CBCentralManager) {
         self.coordinator = coordinator
         self.peripheral = peripheral
+        self.centralManager = centralManager
+        
+        super.init()
+        
+        self.peripheral.delegate = self
         
         setUpStateSubscriber()
-        setUpServicesSubscriber()
     }
     
     private func setUpStateSubscriber() {
         peripheral.publisher(for: \.state)
             .sink { [weak self] newState in
-                guard let self = self else { return }
+                guard let self else { return }
                 self.state = newState
             }
             .store(in: &cancellables)
     }
     
-    private func setUpServicesSubscriber() {
-        peripheral.publisher(for: \.services)
-            .sink { [weak self] newServices in
-                guard let self = self else { return }
-                guard let newService = newServices?.first(where: {$0.isPrimary}) else { return }
-                self.service = newService
-                setUpCharacteristicsSubscriber(service!)
-            }
-            .store(in: &cancellables)
+    func toggleConnection() {
+        if peripheral.state == .connected {
+            centralManager.cancelPeripheralConnection(peripheral)
+            service = nil
+            characteristic = nil
+        } else {
+            centralManager.connect(peripheral)
+        }
+    }
+}
+
+extension PeripheralViewModel: CBPeripheralDelegate {
+    func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: (any Error)?) {
+        service = peripheral.services?.first(where: {$0.uuid == BluetoothConstants.targetServiceCBUUID})
+        
+        if let service {
+            peripheral.discoverCharacteristics([BluetoothConstants.targetCharacteristicCBUUID], for: service)
+        }
+    }
+
+    func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: (any Error)?) {
+        characteristic = service.characteristics?.first(where: {$0.uuid == BluetoothConstants.targetCharacteristicCBUUID})
     }
     
-    private func setUpCharacteristicsSubscriber(_ service: CBService) {
-        service.publisher(for: \.characteristics)
-            .sink { [weak self] newCharacteristics in
-                guard let self = self else { return }
-                self.characteristic = newCharacteristics?.first(where: {$0.uuid == BluetoothConstants.targetCharacteristicCBUUID})
-            }
-            .store(in: &cancellables)
+    func write(string: String, to peripheral: CBPeripheral, for characteristic: CBCharacteristic) {
+        peripheral.writeValue("\(string)\r\n".data(using: .ascii)!, for: characteristic, type: .withoutResponse)
     }
 }

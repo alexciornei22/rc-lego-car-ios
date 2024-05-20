@@ -10,7 +10,6 @@ import CoreBluetooth
 
 struct RootView: View {
     @StateObject var viewModel: RootViewModel
-    @ObservedObject var bluetoothManager: BluetoothManager
 
     var body: some View {
         VStack {
@@ -18,7 +17,7 @@ struct RootView: View {
                 .padding(.horizontal)
                 .frame(maxWidth: .infinity, alignment: .leading)
             
-            List(bluetoothManager.discoveredPeripherals, id: \.identifier) { peripheral in
+            List(viewModel.discoveredPeripherals, id: \.identifier) { peripheral in
                 Button {
                     viewModel.goToPeripheralInteraction(peripheral: peripheral)
                 } label: {

@@ -9,7 +9,6 @@ import SwiftUI
 
 struct PeripheralView: View {
     @StateObject var viewModel: PeripheralViewModel
-    @ObservedObject var bluetoothManager: BluetoothManager
     
     var body: some View {
         GeometryReader { proxy in
@@ -36,7 +35,7 @@ struct PeripheralView: View {
         }
         .onReceive(viewModel.$sliderHeight.throttle(for: 0.25, scheduler: DispatchQueue.main, latest: true)) { value in
             if viewModel.isSendEnabled {
-                bluetoothManager.write(
+                viewModel.write(
                     string: "THR\(value.rounded())",
                     to: viewModel.peripheral,
                     for: viewModel.characteristic!
@@ -47,7 +46,7 @@ struct PeripheralView: View {
     
     private var toggleConnectionButton: some View {
         Button {
-            bluetoothManager.toggleConnectionTo(viewModel.peripheral)
+            viewModel.toggleConnection()
         } label: {
             switch viewModel.state {
             case .connected:
