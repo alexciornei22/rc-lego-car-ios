@@ -14,7 +14,7 @@ class PeripheralViewModel: NSObject, ObservableObject {
     var peripheral: CBPeripheral
     var centralManager: CBCentralManager
 
-    @Published var state: CBPeripheralState = .disconnected
+    @Published var state: CBPeripheralState
     @Published var service: CBService? = nil
     @Published var characteristic: CBCharacteristic? = nil
     var isSendEnabled: Bool {
@@ -22,7 +22,6 @@ class PeripheralViewModel: NSObject, ObservableObject {
         service != nil &&
         characteristic != nil
     }
-    @Published var sliderHeight: CGFloat = 0
 
     private var cancellables = Set<AnyCancellable>()
     
@@ -30,9 +29,12 @@ class PeripheralViewModel: NSObject, ObservableObject {
         self.coordinator = coordinator
         self.peripheral = peripheral
         self.centralManager = centralManager
-        
+        self.state = peripheral.state
+
         super.init()
         
+        self.service = peripheral.services?.first(where: {$0.uuid == BluetoothConstants.targetServiceCBUUID})
+        self.characteristic = self.service?.characteristics?.first(where: {$0.uuid == BluetoothConstants.targetCharacteristicCBUUID})
         self.peripheral.delegate = self
         
         setUpStateSubscriber()

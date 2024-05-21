@@ -11,35 +11,17 @@ struct PeripheralView: View {
     @StateObject var viewModel: PeripheralViewModel
     
     var body: some View {
-        GeometryReader { proxy in
-            HStack(alignment: .center, spacing: 20) {
-                Spacer()
-                VStack {
-                    ThrottleSliderView(sliderHeight: $viewModel.sliderHeight)
-                        .frame(width: 100, height: proxy.size.height / 1.5)
-                    Text("Throttle")
-                        .fontWeight(.bold)
-                }
+        Group {
+            if viewModel.isSendEnabled {
+                PlayView(viewModel: .init(peripheral: viewModel.peripheral, characteristic: viewModel.characteristic!))
+            } else {
+                disconnected
             }
-            .frame(
-                maxWidth: .infinity,
-                maxHeight: .infinity
-            )
-            .padding(.all)
         }
         .navigationTitle(viewModel.peripheral.name ?? "Unknown")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 toggleConnectionButton
-            }
-        }
-        .onReceive(viewModel.$sliderHeight.throttle(for: 0.25, scheduler: DispatchQueue.main, latest: true)) { value in
-            if viewModel.isSendEnabled {
-                viewModel.write(
-                    string: "THR\(value.rounded())",
-                    to: viewModel.peripheral,
-                    for: viewModel.characteristic!
-                )
             }
         }
     }
@@ -58,5 +40,9 @@ struct PeripheralView: View {
                     .progressViewStyle(CircularProgressViewStyle(tint: .blue))
             }
         }
+    }
+    
+    private var disconnected: some View {
+        Text("The car is currently disconnected")
     }
 }
